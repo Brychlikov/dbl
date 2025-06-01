@@ -20,7 +20,8 @@ type data_def =
     { tvar      : T.keffect T.tvar;
       var       : S.var;
       delim_tp  : S.typ;
-      delim_eff : S.effct
+      delim_eff : S.effct;
+      named_param : S.named_scheme list
     }
 
 (** Translate a constructor declaration *)
@@ -56,7 +57,7 @@ let prepare_data_def env (dd : S.data_def) =
     | KEffect ->
       let dd = DD_Label {
           tvar; var = dd.var;
-          delim_tp = dd.delim_tp; delim_eff = dd.delim_eff 
+          delim_tp = dd.delim_tp; delim_eff = dd.delim_eff ; named_param = dd.named_param
         }
       in
       (env, dd)
@@ -83,7 +84,8 @@ let finalize_data_def env (dd : data_def) =
       tvars     = [];
       val_types = [];
       delim_tp  = Type.tr_ttype  env dd.delim_tp;
-      delim_eff = Type.tr_ceffect env (Impure dd.delim_eff)
+      delim_eff = Type.tr_ceffect env (Impure dd.delim_eff);
+      named_par = List.map (fun (_, sch) -> Type.tr_scheme env sch) dd.named_param
     }
 
 let tr_data_defs env dds =

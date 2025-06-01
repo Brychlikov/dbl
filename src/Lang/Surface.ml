@@ -262,7 +262,7 @@ and expr_data =
   | EMatch of expr * match_clause list
     (** Pattern-matching *)
 
-  | EHandler of expr * match_clause list * match_clause list
+  | EHandler of expr * match_clause list * match_clause list * (name * ident * poly_expr_def) list
     (** First-class handler, with return and finally clauses. For each of these
       clause lists, empty list means the default identity clause *)
 

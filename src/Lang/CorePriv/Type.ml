@@ -272,16 +272,21 @@ let rec type_in_scope : type k. _ -> k typ -> k typ option =
     end
   | TLabel lbl ->
     let effct = type_in_scope scope lbl.effct in
-    let scope  = add_tvars_to_scope lbl.tvars scope in
+    let scope  = 
+      add_tvars_to_scope lbl.tvars scope 
+      |> add_tvars_to_scope lbl.type_par 
+    in
+
     begin match
       effct,
       forall_map (type_in_scope scope) lbl.val_types,
       type_in_scope scope lbl.delim_tp,
-      type_in_scope scope lbl.delim_eff
+      type_in_scope scope lbl.delim_eff,
+      forall_map (type_in_scope scope) lbl.val_par
     with
-    | Some effct, Some val_types, Some delim_tp, Some delim_eff ->
+    | Some effct, Some val_types, Some delim_tp, Some delim_eff, Some val_par ->
       Some (TLabel
-        { effct; tvars = lbl.tvars; val_types; delim_tp; delim_eff })
+          { effct; tvars = lbl.tvars; val_types; delim_tp; delim_eff; type_par = lbl.type_par; val_par })
     | _ -> None
     end
   | TData(tp, eff, ctors) ->

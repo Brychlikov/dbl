@@ -528,8 +528,9 @@ def_list1
 /* ========================================================================= */
 
 h_clause
-: KW_RETURN  expr ARROW2 expr { make (HCReturn($2, $4))  }
-| KW_FINALLY expr ARROW2 expr { make (HCFinally($2, $4)) }
+: KW_RETURN  expr ARROW2 expr { make (HCReturn($2, $4))    }
+| KW_FINALLY expr ARROW2 expr { make (HCFinally($2, $4))   }
+| KW_PARAMETER field  { make (HCParameter($2))  }
 ;
 
 h_clauses

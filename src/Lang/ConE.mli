@@ -112,8 +112,10 @@ type data_def =
       delim_tp  : typ;
         (** Type of the delimiter *)
 
-      delim_eff : effct
+      delim_eff : effct;
         (** Effect of the delimiter *)
+
+      named_param : named_scheme list;
     }
 
 (** Expressions *)
@@ -184,11 +186,11 @@ type expr =
     (** Pattern matching. The first parameter is the proof that the type of
       the matched value is an ADT *)
 
-  | EShift of expr * var * expr * typ
+  | EShift of expr * var * expr * (name * var * scheme) list * typ
     (** Shift-0 operator parametrized by runtime tag, binder for continuation
       variable, body, and the type of the whole expression. *)
 
-  | EReset of expr * expr * var * expr
+  | EReset of expr * expr * var * expr * (named_scheme * expr) list
     (** Reset-0 operator parametrized by runtime tag, body, and the return
       clause *)
 
@@ -237,6 +239,15 @@ and match_clause =
 
 (** Programs *)
 type program = expr
+
+(** contents of first class label *)
+type label_data = {
+  lb_eff       : effct;
+  lb_delim_tp  : typ;
+  lb_delim_eff : effct;
+  lb_targs     : named_tvar list;
+  lb_named     : named_scheme list;
+}
 
 (* ========================================================================= *)
 (** Operations on type variables *)
@@ -387,7 +398,7 @@ module Type : sig
     | TArrow   of scheme * typ * ceffect
       (** Arrow type *)
 
-    | TLabel   of effct * typ * effct
+    | TLabel   of label_data
       (** Label type with the delimited effect, and the type type and effect
         of the delimiter. *)
 
@@ -434,7 +445,7 @@ module Type : sig
   val t_handler : tvar -> typ -> typ -> effct -> typ -> effct -> typ
 
   (** Label type *)
-  val t_label : effct -> typ -> effct -> typ
+  val t_label : effct -> typ -> effct -> named_tvar list -> named_scheme list -> typ
 
   (** Type application *)
   val t_app : typ -> typ -> typ

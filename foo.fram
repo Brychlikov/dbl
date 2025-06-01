@@ -1,0 +1,18 @@
+
+data Eff E = 
+  { get : Unit ->[E] Int 
+  , put : Int  ->[E] Unit
+  }
+
+let hEff (st0 : Int)=
+  handler
+    Eff
+      { get = effect ()      => resume {st} st
+      , put = effect new_st  => resume {st=new_st} ()
+      }
+    return x => x
+    parameter st = st0
+  end
+
+let _ = handle st with hEff 1 in 
+    st.put 2; printStr (st.get ()).toString

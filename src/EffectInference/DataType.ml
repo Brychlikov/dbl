@@ -70,16 +70,26 @@ let tr_data_def env (x, (dd : S.data_def)) =
   | DD_Label l ->
     let delim_tp  = Type.tr_type env l.delim_tp in
     let delim_eff = Env.fresh_gvar env in
-    let lbl_tp  = T.Type.t_label (T.Effct.var x) delim_tp delim_eff in
+    let lbl_tp  = T.Type.t_label (T.Effct.var x) delim_tp delim_eff [] [] in
+    (* TODO: missing parameters in label data definitions *)
     let lbl_tp' = Type.tr_type_expr env l.annot in
     let origin  = OLabelAnnot(l.annot.pos, l.annot.pp, lbl_tp, lbl_tp') in
     Subtyping.subtype ~origin env lbl_tp lbl_tp';
     let env = Env.add_mono_var env l.var lbl_tp' in
+    let named_param = List.map (Type.tr_named_scheme env) l.named_params in
+    (* let (env, named_pars) = List.fold_left_map  *)
+    (*   (fun env (n, sch) ->  *)
+    (*     let sch = Type.tr_scheme env sch in *)
+    (*     let env = Env.add_poly_var env x sch in *)
+    (*     (env, (n, x, sch))) *)
+    (*   env l.named_pars  *)
+    (* in *)
     let dd = T.DD_Label
       { tvar      = x;
         var       = l.var;
         delim_tp  = delim_tp;
-        delim_eff = delim_eff
+        delim_eff = delim_eff;
+        named_param
       } in
     (env, dd)
 

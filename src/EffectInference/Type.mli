@@ -9,6 +9,12 @@ open Common
 (** Translate a type *)
 val tr_type : Env.t -> S.typ -> T.typ
 
+(** Translate a scheme *)
+val tr_scheme : Env.t -> S.scheme -> T.scheme
+
+(** Translate a named scheme *)
+val tr_named_scheme : Env.t -> S.named_scheme -> T.named_scheme
+
 (** Translate a type expression *)
 val tr_type_expr : Env.t -> S.type_expr -> T.typ
 

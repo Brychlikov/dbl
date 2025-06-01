@@ -45,11 +45,14 @@ let rec tr_type env (tp : S.typ) =
       (Env.constraints env) (T.Scheme.of_type tp);
     tp
 
-  | TLabel delim_tp ->
+  | TLabel lbl ->
+    let (env, targs) = Env.add_named_tvars env lbl.lb_targs in
     T.Type.t_label
       (Env.fresh_gvar env)
-      (tr_type env delim_tp)
+      (tr_type env lbl.lb_delim_tp)
       (Env.fresh_gvar env)
+      targs
+      (List.map (tr_named_scheme env) lbl.lb_named)
 
   | TApp(tp1, tp2) ->
     T.Type.t_app
@@ -114,11 +117,15 @@ let rec tr_type_expr env (tp : S.type_expr) =
       (Env.constraints env) (T.Scheme.of_type tp);
     tp
 
-  | TE_Label { eff; delim_tp; delim_eff } ->
+  | TE_Label { eff; delim_tp; delim_eff; targs = []; named } ->
     T.Type.t_label
       (tr_effect_expr env eff)
       (tr_type_expr env delim_tp)
       (tr_effect_expr env delim_eff)
+      []
+      (List.map (tr_named_scheme_expr env) named)
+
+  | TE_Label _ -> failwith "TODO"
 
   | TE_App(tp1, tp2) ->
     T.Type.t_app

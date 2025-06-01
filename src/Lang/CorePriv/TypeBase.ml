@@ -90,7 +90,9 @@ type _ typ =
       tvars     : TVar.ex list;
       val_types : ttype list;
       delim_tp  : ttype;
-      delim_eff : effct
+      delim_eff : effct;
+      type_par  : TVar.ex list;
+      val_par   : ttype list;
     } -> ktype typ
   | TData    : ttype * effct * ctor_type list -> ktype typ
   | TApp     : ('k1 -> 'k2) typ * 'k1 typ -> 'k2 typ

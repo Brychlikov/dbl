@@ -278,6 +278,9 @@ and h_clause_data =
   | HCFinally of expr * expr
     (** Finally clause *)
 
+  | HCParameter of field
+    (** Parameter clause with initializer *)
+
 (** Path to an imported module tagged as absolute or relative *)
 type import_path =
   | IPAbsolute of module_name list * module_name

@@ -42,8 +42,9 @@ let rec contains_uvar u tp =
     scheme_contains_uvar u sch || contains_uvar u tp2
   | THandler(_, tp, itp, otp) ->
     contains_uvar u tp || contains_uvar u itp || contains_uvar u otp
-  | TLabel tp0 ->
-    contains_uvar u tp0
+  | TLabel {lb_delim_tp; lb_targs; lb_named} ->
+    (* TODO: UNHANDLED targs!! *)
+    contains_uvar u lb_delim_tp  || List.exists (fun (_, sch) -> scheme_contains_uvar u sch) lb_named
   | TApp(tp1, tp2) ->
     contains_uvar u tp1 || contains_uvar u tp2
 
@@ -62,7 +63,10 @@ let rec collect_uvars tp uvs =
     |> collect_uvars tp
     |> collect_uvars itp
     |> collect_uvars otp
-  | TLabel tp0 -> collect_uvars tp0 uvs
+  | TLabel {lb_delim_tp; lb_targs = []; lb_named} -> 
+    collect_uvars lb_delim_tp 
+    ((List.fold_left (fun acc nsch -> collect_named_scheme_uvars nsch acc) uvs lb_named))
+  | TLabel _ -> failwith "TODO"
   | TApp(tp1, tp2) ->
     collect_uvars tp1 (collect_uvars tp2 uvs)
 
@@ -74,6 +78,8 @@ and collect_scheme_uvars sch uvs =
       sch.sch_named
   in
   collect_uvars sch.sch_body uvs
+
+and collect_named_scheme_uvars (_, sch) uvs = collect_scheme_uvars sch uvs
 
 let collect_ctor_uvars ctor uvs =
   uvs
@@ -114,7 +120,10 @@ let rec shrink_scope ~tvars ~scope tp =
     let tvars = TVar.Set.add a tvars in
     shrink_scope ~tvars ~scope tp;
     shrink_scope ~tvars ~scope itp
-  | TLabel tp0 -> shrink_scope ~tvars ~scope tp0
+  | TLabel {lb_delim_tp; lb_targs = []; lb_named} -> 
+    shrink_scope ~tvars ~scope lb_delim_tp;
+    List.iter (fun (_, sch) -> shrink_scheme_scope ~tvars ~scope sch) lb_named
+  | TLabel _ -> failwith "TODO"
   | TApp(tp1, tp2) ->
     shrink_scope ~tvars ~scope tp1;
     shrink_scope ~tvars ~scope tp2
@@ -163,7 +172,10 @@ let ctor_is_positive ~scope ~args ~nonrec_scope ctor =
         fits_in_scope ~tvars tp &&
         fits_in_scope ~tvars itp
       end
-    | TLabel tp0 -> fits_in_scope ~tvars tp0
+    | TLabel {lb_delim_tp; lb_targs = []; lb_named} -> 
+      fits_in_scope ~tvars lb_delim_tp &&
+      List.for_all (fun (_, sch) -> scheme_fits_in_scope ~tvars sch) lb_named
+    | TLabel _ -> failwith "TODO"
     | TApp(tp1, tp2) ->
       fits_in_scope ~tvars tp1 && fits_in_scope ~tvars tp2
 

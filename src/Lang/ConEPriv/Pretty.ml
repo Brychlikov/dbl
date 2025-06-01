@@ -28,8 +28,8 @@ let rec tr_type tp =
     PP_TPureArrow(tr_scheme sch, tr_type tp)
   | TArrow(sch, tp, Impure eff) ->
     PP_TArrow(tr_scheme sch, tr_type tp, tr_effect eff)
-  | TLabel(eff, delim_tp, delim_eff) ->
-    PP_TLabel(tr_effect eff, tr_type delim_tp, tr_effect delim_eff)
+  | TLabel({lb_eff; lb_delim_tp; lb_delim_eff; lb_named; lb_targs}) ->
+    PP_TLabel(tr_effect lb_eff, tr_type lb_delim_tp, tr_effect lb_delim_eff)
   | THandler h ->
     PP_THandler
       { eff_var = h.tvar;

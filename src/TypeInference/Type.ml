@@ -59,7 +59,8 @@ let rec infer_kind env (tp : S.type_expr) =
     let eff       = tr_effect env effct in
     let delim_tp  = tr_ttype  env delim_tp in
     let delim_eff = tr_effect env delim_eff in
-    let tp = make (T.TE_Label { eff; delim_tp; delim_eff }) in
+    (* TODO: parameters missing from type expression syntax *)
+    let tp = make (T.TE_Label { eff; delim_tp; delim_eff; targs = []; named = [] }) in
     (tp, T.Kind.k_type)
 
   | TApp(tp1, tp2) ->

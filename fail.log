@@ -1,0 +1,215 @@
+(defs
+  (data
+    (data
+      tp#fa
+      Eff#1f
+      (tp#fb)
+      (Eff () (tp#d -> tp#a (effect tp#fb tp#10)) (tp#a -> tp#d (effect tp#fb tp#10)))))
+  (let-pure
+    get#36
+    (tfun
+      (tp#111 effect)
+      (fn
+        (x#35 (app tp#fa tp#111))
+        (let-pure
+          x#95
+          (fn
+            (x#2f (tp#d -> tp#a (effect tp#111 tp#10)))
+            (fn
+              (get#34 (tp#d -> tp#a (effect tp#111 tp#10)))
+              (fn (x#30 (tp#a -> tp#d (effect tp#111 tp#10))) (fn (x#94 tp#d) get#34)))))
+        (match
+          (tapp Eff#1f tp#111)
+          x#35
+          (clauses
+            ((tvars)
+              (vars x#96 x#97)
+              (let
+                x#112
+                (defs
+                  (let x#113 (defs (let x#114 (app x#95 x#96)) (app x#114 x#96)))
+                  (app x#113 x#97)))
+              (app x#112 (ctor (extern __Unit_Proof__ (data tp#d () (() ()))) 0 ()))))
+          (tp#d -> tp#a (effect tp#111 tp#10))
+          (effect)))))
+  (let-pure
+    put#4d
+    (tfun
+      (tp#10d effect)
+      (fn
+        (x#4c (app tp#fa tp#10d))
+        (let-pure
+          x#a1
+          (fn
+            (x#46 (tp#d -> tp#a (effect tp#10d tp#10)))
+            (fn
+              (x#47 (tp#a -> tp#d (effect tp#10d tp#10)))
+              (fn (put#4b (tp#a -> tp#d (effect tp#10d tp#10))) (fn (x#a0 tp#d) put#4b)))))
+        (match
+          (tapp Eff#1f tp#10d)
+          x#4c
+          (clauses
+            ((tvars)
+              (vars x#a2 x#a3)
+              (let
+                x#10e
+                (defs
+                  (let x#10f (defs (let x#110 (app x#a1 x#a2)) (app x#110 x#a3)))
+                  (app x#10f x#a3)))
+              (app x#10e (ctor (extern __Unit_Proof__ (data tp#d () (() ()))) 0 ()))))
+          (tp#a -> tp#d (effect tp#10d tp#10))
+          (effect)))))
+  (let-pure
+    hEff#8a
+    (tfun
+      (tp#fc effect)
+      (tfun
+        (tp#fd effect)
+        (cabs
+          ()
+          (tfun
+            (tp#fe type)
+            (fn
+              (x#88 tp#a)
+              (let-pure
+                x#f2
+                (fn
+                  (st0#54 tp#a)
+                  (fn
+                    (x#f1 tp#d)
+                    (fn
+                      (comp#e8
+                        (forall
+                          (tp#100 effect)
+                          ((app tp#fa (effect tp#fd tp#100))
+                            ->
+                            tp#fe
+                            (effect tp#fc tp#100 tp#10))))
+                      (data (label tp#101 ~label#5f tp#fe (effect tp#fc tp#10)))
+                      (let
+                        x#87
+                        (defs
+                          (reset
+                            ~label#5f
+                            ()
+                            ()
+                            (st0#54)
+                            x#82
+                            (defs
+                              (let-pure x#cb (fn (x#86 tp#fe) (fn (x#ca tp#d) x#86)))
+                              (let x#102 (app x#cb x#82))
+                              (app
+                                x#102
+                                (ctor (extern __Unit_Proof__ (data tp#d () (() ()))) 0 ()))))
+                          (let x#103 (tapp comp#e8 tp#101))
+                          (let-pure
+                            x#72
+                            (fn
+                              (x#71 tp#d)
+                              (let-pure
+                                x#be
+                                (fn
+                                  (x#bd tp#d)
+                                  (shift
+                                    ~label#5f
+                                    ()
+                                    ()
+                                    x#70
+                                    (st#6c)
+                                    tp#a
+                                    (defs
+                                      (let-pure
+                                        x#bc
+                                        (fn
+                                          (resume#6b (tp#a tp#a -> tp#fe (effect tp#fc tp#10)))
+                                          (fn
+                                            (x#bb tp#d)
+                                            (let-pure x#6e st#6c)
+                                            (let x#10c (app resume#6b x#6e))
+                                            (app x#10c st#6c))))
+                                      (let x#10b (app x#bc x#70))
+                                      (app
+                                        x#10b
+                                        (ctor
+                                          (extern __Unit_Proof__ (data tp#d () (() ())))
+                                          0
+                                          ()))))))
+                              (match
+                                (extern __Unit_Proof__ (data tp#d () (() ())))
+                                x#71
+                                (clauses
+                                  ((tvars)
+                                    (vars)
+                                    (app
+                                      x#be
+                                      (ctor (extern __Unit_Proof__ (data tp#d () (() ()))) 0 ()))))
+                                tp#a
+                                (effect tp#101 tp#10))))
+                          (let-pure
+                            x#81
+                            (fn
+                              (x#80 tp#a)
+                              (let-pure
+                                x#c4
+                                (fn
+                                  (new_st#76 tp#a)
+                                  (fn
+                                    (x#c3 tp#d)
+                                    (shift
+                                      ~label#5f
+                                      ()
+                                      ()
+                                      x#7f
+                                      (st#7b)
+                                      tp#d
+                                      (defs
+                                        (let-pure
+                                          x#c2
+                                          (fn
+                                            (resume#7a (tp#a tp#d -> tp#fe (effect tp#fc tp#10)))
+                                            (fn
+                                              (x#c1 tp#d)
+                                              (let-pure x#7d new_st#76)
+                                              (let x#10a (app resume#7a x#7d))
+                                              (app
+                                                x#10a
+                                                (ctor
+                                                  (extern __Unit_Proof__ (data tp#d () (() ())))
+                                                  0
+                                                  ())))))
+                                        (let x#109 (app x#c2 x#7f))
+                                        (app
+                                          x#109
+                                          (ctor
+                                            (extern __Unit_Proof__ (data tp#d () (() ())))
+                                            0
+                                            ())))))))
+                              (let x#108 (app x#c4 x#80))
+                              (app
+                                x#108
+                                (ctor (extern __Unit_Proof__ (data tp#d () (() ()))) 0 ()))))
+                          (let
+                            x#104
+                            (defs
+                              (let
+                                x#105
+                                (defs
+                                  (let
+                                    x#106
+                                    (tapp
+                                      (tfun
+                                        (tp#107 effect)
+                                        (fn
+                                          (x#c7 (tp#d -> tp#a (effect tp#107 tp#10)))
+                                          (fn
+                                            (x#c8 (tp#a -> tp#d (effect tp#107 tp#10)))
+                                            (ctor (tapp Eff#1f tp#107) 0 () x#c7 x#c8))))
+                                      (effect tp#fd tp#101)))
+                                  (app x#106 x#72)))
+                              (app x#105 x#81)))
+                          (app x#103 x#104)))
+                      x#87))))
+              (let x#ff (app x#f2 x#88))
+              (app x#ff (ctor (extern __Unit_Proof__ (data tp#d () (() ()))) 0 ()))))))))
+  (ctor (extern __Unit_Proof__ (data tp#d () (() ()))) 0 ()))
+Lengths: 1 vs 1Lengths: 1 vs 1

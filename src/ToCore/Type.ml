@@ -37,16 +37,20 @@ let rec tr_type env tp =
     T.Type.Ex (
       T.TArrow(tr_scheme env sch, tr_ttype env tp, tr_ceffect env eff))
 
-  | TLabel(eff, delim_tp, delim_eff) ->
+  | TLabel {lb_eff; lb_delim_tp; lb_delim_eff; lb_targs = []; lb_named } ->
+    let val_par = List.map (tr_named_scheme env) lb_named  in
     T.Type.Ex
       (T.TLabel
-        { effct     = tr_effect env eff;
+        { effct     = tr_effect env lb_eff;
           tvars     = [];
           val_types = [];
-          delim_tp  = tr_ttype env delim_tp;
-          delim_eff = tr_ceffect env (Impure delim_eff)
+          delim_tp  = tr_ttype env lb_delim_tp;
+          delim_eff = tr_ceffect env (Impure lb_delim_eff);
+          type_par  = [];
+          val_par;
         })
 
+  | TLabel _ -> failwith "TODO: type parameters"
   | THandler h ->
     let out_tp  = tr_ttype env h.out_tp in
     let out_eff = tr_ceffect env (Impure h.out_eff) in
@@ -92,10 +96,13 @@ and tr_ttype env tp : T.ttype =
 and tr_scheme env (sch : S.scheme) =
   let S.{ sch_targs; sch_named; sch_body } = sch in
   let (env, tvars) = Env.add_named_tvars env sch_targs in
-  let tps = List.map (fun (_, sch) -> tr_scheme env sch) sch_named in
+  let tps = List.map (tr_named_scheme env) sch_named in
   T.Type.t_foralls tvars
     (T.Type.t_pure_arrows tps
       (tr_ttype env sch_body))
+
+and tr_named_scheme env ((_, sch) : S.named_scheme) = 
+  tr_scheme env sch
 
 let tr_constr env (eff1, eff2) =
   (tr_effect env eff1, tr_effect env eff2)

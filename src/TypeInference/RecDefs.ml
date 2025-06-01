@@ -135,7 +135,8 @@ let rec finalize_rec_data ~nonrec_scope env (def : def1 S.node) =
 
   | D1_Label(tvar, public, id, sch_opt) ->
     let delim_tp = Env.fresh_uvar env T.Kind.k_type in
-    let l_tp = T.Type.t_label delim_tp in
+    (* TODO: what parameters? *)
+    let l_tp = T.Type.t_label delim_tp [] [] in
     let annot =
       match sch_opt with
       | None -> make (T.TE_Type l_tp)
@@ -154,7 +155,8 @@ let rec finalize_rec_data ~nonrec_scope env (def : def1 S.node) =
       { tvar     = tvar;
         var      = x;
         delim_tp = delim_tp;
-        annot    = annot
+        annot    = annot;
+        named_params = [];
       } in
     (env, [dd], T.Impure)
 
@@ -577,16 +579,18 @@ let update_rec_body ~pos fds (body : T.poly_fun) =
 
     | EHandler h ->
       make (T.EHandler {
-        label    = h.label;
-        eff_var  = h.eff_var;
-        delim_tp = h.delim_tp;
-        cap_type = h.cap_type;
-        cap_body = update_expr h.cap_body;
-        ret_var  = h.ret_var;
-        body_tp  = h.body_tp;
-        ret_body = update_expr h.ret_body;
-        fin_var  = h.fin_var;
-        fin_body = update_expr h.fin_body
+        label     = h.label;
+        eff_var   = h.eff_var;
+        delim_tp  = h.delim_tp;
+        cap_type  = h.cap_type;
+        cap_body  = update_expr h.cap_body;
+        ret_var   = h.ret_var;
+        body_tp   = h.body_tp;
+        ret_body  = update_expr h.ret_body;
+        fin_var   = h.fin_var;
+        fin_body  = update_expr h.fin_body;
+        named_par = h.named_par;
+        type_par  = h.type_par;
       })
 
     | EAnnot(e, tp) ->

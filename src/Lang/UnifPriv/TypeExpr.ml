@@ -20,7 +20,7 @@ let rec to_type (tp : type_expr) =
     { eff_var; cap_type; in_type; in_eff = _; out_type; out_eff = _ } ->
     t_handler eff_var (to_type cap_type) (to_type in_type) (to_type out_type)
   | TE_Label lbl ->
-    t_label (to_type lbl.delim_tp)
+    t_label (to_type lbl.delim_tp) lbl.targs (List.map (fun (n, se) -> (n, to_scheme se)) lbl.named)
   | TE_App(tp1, tp2) ->
     t_app (to_type tp1) (to_type tp2)
   | TE_Option tp ->
@@ -89,11 +89,15 @@ let rec subst sub (tp : type_expr) =
         in_type = subst sub in_type;
         in_eff = subst sub in_eff
       }
-    | TE_Label { eff; delim_tp; delim_eff } ->
+    | TE_Label { eff; delim_tp; delim_eff; targs; named } ->
+      let (sub, tvars) = Subst.add_tvars (Subst.enter_scope sub) (List.map (fun (_, tv) -> tv) targs) in
+      let targs = List.map2 (fun (name, _) tv -> (name, tv)) targs tvars in
       TE_Label {
         eff       = subst sub eff;
         delim_tp  = subst sub delim_tp;
-        delim_eff = subst sub delim_eff
+        delim_eff = subst sub delim_eff;
+        targs;
+        named     = List.map (subst_in_named_scheme sub) named
       }
     | TE_App(tp1, tp2) ->
       TE_App(subst sub tp1, subst sub tp2)

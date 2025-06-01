@@ -20,7 +20,8 @@ type data_def =
     { tvar      : tvar;
       var       : var;
       delim_tp  : typ;
-      delim_eff : effct
+      delim_eff : effct;
+      named_param : named_scheme list;
     }
 
 type expr =
@@ -44,8 +45,8 @@ type expr =
   | EData     of data_def list * expr
   | ECtor     of expr * int * typ list * expr list
   | EMatch    of expr * expr * match_clause list * typ * ceffect
-  | EShift    of expr * var * expr * typ
-  | EReset    of expr * expr * var * expr
+  | EShift    of expr * var * expr * (name * var * scheme) list * typ
+  | EReset    of expr * expr * var * expr * (named_scheme * expr) list
   | EExtern   of string * typ
   | ERepl     of (unit -> expr) * typ * ceffect
   | EReplExpr of expr * string * expr

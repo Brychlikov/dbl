@@ -64,6 +64,7 @@ val mk_handler :
   cap_body:T.expr ->
   ret_var:T.var -> ret_body:T.expr ->
   fin_var:T.var -> fin_body:T.expr ->
+  named_par:((T.named_scheme * T.expr) list) -> 
     unit -> T.expr
 
 (** Context with less-polymorphic versions of recursive definitions. *)

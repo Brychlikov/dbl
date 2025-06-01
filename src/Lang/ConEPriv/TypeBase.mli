@@ -28,10 +28,18 @@ type scheme =
 
 and named_scheme = name * scheme
 
+type label_data = {
+  lb_eff       : effct;
+  lb_delim_tp  : typ;
+  lb_delim_eff : effct;
+  lb_targs     : named_tvar list;
+  lb_named     : named_scheme list;
+}
+
 type type_view =
   | TVar     of tvar
   | TArrow   of scheme * typ * ceffect
-  | TLabel   of effct * typ * effct
+  | TLabel   of label_data
   | THandler of
     { tvar    : tvar;
       cap_tp  : typ;
@@ -56,7 +64,7 @@ val t_var         : tvar -> typ
 val t_arrow       : scheme -> typ -> ceffect -> typ
 val t_pure_arrow  : scheme -> typ -> typ
 val t_pure_arrows : scheme list -> typ -> typ
-val t_label       : effct -> typ -> effct -> typ
+val t_label       : effct -> typ -> effct -> named_tvar list -> named_scheme list -> typ
 val t_handler     : tvar -> typ -> typ -> effct -> typ -> effct -> typ
 val t_effect      : effct -> typ
 val t_app         : typ -> typ -> typ

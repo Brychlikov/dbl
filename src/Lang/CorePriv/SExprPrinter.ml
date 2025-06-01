@@ -145,13 +145,14 @@ let rec tr_expr (e : Syntax.expr) =
     List [ Sym "match"; tr_expr proof; tr_value v;
       List (Sym "clauses" :: List.map tr_clause cls);
       tr_type tp; tr_type eff ]
-  | EShift(v, tvs, xs, k, body, tp) ->
+  | EShift(v, tvs, xs, k, body, named_pars, tp) ->
     List
       [ Sym "shift";
         tr_value v;
         List (List.map tr_tvar_binder_ex tvs);
         List (List.map tr_var xs);
         tr_var k;
+        List (List.map tr_var named_pars);
         tr_type tp;
         tr_expr body ]
   | ERepl(_, tp, eff) ->
@@ -188,16 +189,17 @@ and tr_defs (e : Syntax.expr) =
     List [Sym "let-irr"; tr_var x; tr_expr e1] :: tr_defs e2
   | ELetRec(rds, e2) ->
     List (Sym "let-rec" :: List.map tr_rec_def rds) :: tr_defs e2
-  | ERecCtx _ ->
+  | ERecCtx e ->
     List [Sym "rec-ctx"] :: tr_defs e
   | EData(dds, e2) ->
     List (Sym "data" :: List.map tr_data_def dds) :: tr_defs e2
-  | EReset(v, tps, vs, body, x, ret) ->
+  | EReset(v, tps, vs, body, par_inits, x, ret) ->
     List
       [ Sym "reset";
         tr_value v;
         List (List.map tr_type_ex tps);
         List (List.map tr_value vs);
+        List (List.map tr_value par_inits);
         tr_var x; tr_expr ret
       ] :: tr_defs body
 

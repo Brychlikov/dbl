@@ -15,9 +15,9 @@ let run_stack v stack =
   | f :: stack -> f.f_ret v f.f_cont stack
 
 (** reset0 operator *)
-let reset0 l vs comp ret cont stack =
+let reset0 l vs pars comp ret cont stack =
   comp run_stack
-    ({ f_label = l; f_vals = vs; f_ret = ret; f_cont = cont } :: stack)
+    ({ f_label = l; f_vals = vs; f_ret = ret; f_pars = pars; f_cont = cont } :: stack)
 
 let rec reify_cont gstack v cont stack =
   match gstack with
@@ -32,7 +32,7 @@ let rec grab l comp cont gstack stack =
     let gstack = { f with f_cont = cont } :: gstack in
     let cont = f.f_cont in
     if f.f_label = l then
-      comp f.f_vals (VFn(reify_cont gstack)) cont stack
+      comp f.f_vals f.f_pars (VFn(reify_cont gstack)) cont stack
     else
       grab l comp cont gstack stack
 
@@ -70,22 +70,24 @@ let rec eval_expr env (e : Lang.Untyped.expr) cont =
   | ELabel(x, e) ->
     let l = UID.fresh () in
     eval_expr (Env.extend env x (VLabel l)) e cont
-  | EShift(v, xs, x, e) ->
+  | EShift(v, xs, x, ps, e) ->
     begin match eval_value env v with
     | VLabel l ->
       shift0 l
-        (fun vs k ->
+        (fun vs pvs k ->
           let env = List.fold_left2 Env.extend env xs vs in
+          let env = List.fold_left2 Env.extend env ps pvs in
           let env = Env.extend env x k in
           eval_expr env e)
         cont
     | _ -> failwith "Runtime error!"
     end
-  | EReset(v, vs, e1, x, e2) ->
+  | EReset(v, vs, e1, x, pars, e2) ->
     begin match eval_value env v with
     | VLabel l ->
       let vs = List.map (eval_value env) vs in
-      reset0 l vs (eval_expr env e1)
+      let pars = List.map (eval_value env) pars in
+      reset0 l vs pars (eval_expr env e1)
         (fun v -> eval_expr (Env.extend env x v) e2)
         cont
     | _ -> failwith "Runtime error!"

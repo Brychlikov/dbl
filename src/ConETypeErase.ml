@@ -54,13 +54,15 @@ let rec tr_expr (e : S.expr) =
     let^ v = tr_expr_v e in
     T.EMatch(v, List.map tr_clause cls)
 
-  | EShift(lbl_e, x, body, _) ->
+  | EShift(lbl_e, x, body, npars, _) ->
     let^ lbl_v = tr_expr_v lbl_e in
-    T.EShift(lbl_v, [], x, tr_expr body)
+    let par_vars = List.map (fun (_, y, _) -> y) npars in
+    T.EShift(lbl_v, [], x, par_vars, tr_expr body)
 
-  | EReset(lbl_e, body, ret_var, ret_body) ->
+  | EReset(lbl_e, body, ret_var, ret_body, par_inits) ->
     let^ lbl_v = tr_expr_v lbl_e in
-    T.EReset(lbl_v, [], tr_expr body, ret_var, tr_expr ret_body)
+    let^ inits = tr_expr_vs (List.map snd par_inits) in
+    T.EReset(lbl_v, [], tr_expr body, ret_var, inits, tr_expr ret_body)
 
   | ERepl(func, _, _) ->
     T.ERepl (fun () -> tr_expr (func ()))

@@ -59,13 +59,15 @@ let rec tr_expr env (e : S.expr) =
       Type.tr_ttype env tp,
       Type.tr_ceffect env eff)
 
-  | EShift(lbl_e, x, body, tp) ->
+  | EShift(lbl_e, x, body, named_pars, tp) ->
     let^ lbl_v = tr_expr_v env lbl_e in
-    T.EShift(lbl_v, [], [], x, tr_expr env body, Type.tr_ttype env tp)
+    let par_vars = List.map (fun (_, x, _) -> x) named_pars in
+    T.EShift(lbl_v, [], [], x, tr_expr env body, par_vars, Type.tr_ttype env tp)
 
-  | EReset(lbl_e, body, ret_var, ret_body) ->
+  | EReset(lbl_e, body, ret_var, ret_body, par_inits) ->
     let^ lbl_v = tr_expr_v env lbl_e in
-    T.EReset(lbl_v, [], [], tr_expr env body, ret_var, tr_expr env ret_body)
+    let^ par_inits = tr_expr_vs env (List.map snd par_inits) in
+    T.EReset(lbl_v, [], [], tr_expr env body, par_inits, ret_var, tr_expr env ret_body)
 
 (** Translate expression and store result in variable [x] *)
 and tr_let_expr ~pure x env (e : S.expr) cont =

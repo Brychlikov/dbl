@@ -1,0 +1,8 @@
+parameter ~x : Int
+
+let foo () = ~x + 3
+let ~x = "sike!"
+
+let bar () = ~x + "3"
+
+let _ = printStrLn (bar ())

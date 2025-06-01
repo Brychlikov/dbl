@@ -22,11 +22,11 @@ let rec tr_type tp =
   match view tp with
   | TVar x -> tr_tvar x
   | TArrow _ -> List (tr_arrow tp)
-  | TLabel(eff, delim_tp, delim_eff) ->
+  | TLabel({lb_eff; lb_delim_tp; lb_delim_eff; lb_named; lb_targs}) ->
     List [Sym "label";
-      Effct.to_sexpr eff;
-      tr_type delim_tp;
-      Effct.to_sexpr delim_eff]
+      Effct.to_sexpr lb_eff;
+      tr_type lb_delim_tp;
+      Effct.to_sexpr lb_delim_eff]
   | THandler h ->
     List [Sym "handler";
       tr_tvar h.tvar;
@@ -124,11 +124,12 @@ let rec tr_expr (e : expr) =
     List [ Sym "match"; tr_expr proof; tr_expr e;
       List (Sym "clauses" :: List.map tr_clause cls);
       tr_type tp; CEffect.to_sexpr eff ]
-  | EShift(lbl, k, body, tp) ->
+  | EShift(lbl, k, body, npars, tp) ->
     List
       [ Sym "shift";
         tr_expr lbl;
         tr_var k;
+        List (Stdlib.List.map (fun (n, _, sch) -> tr_named_scheme (n, sch)) npars);
         tr_type tp;
         tr_expr body ]
   | EExtern(name, tp) ->
@@ -172,11 +173,12 @@ and tr_defs e =
   | ERecCtx e2 -> List [ Sym "rec-ctx" ] :: tr_defs e2
   | EData(dds, e2) ->
     List (Sym "data" :: List.map tr_data_def dds) :: tr_defs e2
-  | EReset(lbl, body, x, ret) ->
+  | EReset(lbl, body, x, ret, par_inits) ->
     List
       [ Sym "reset";
         tr_expr lbl;
-        tr_var x; tr_expr ret
+        tr_var x; tr_expr ret;
+        Sym "params..?" (* TODO: what here? *)
       ] :: tr_defs body
 
   | EUnitPrf | EOptionPrf | ENum _ | ENum64 _ | EStr _ | EChr _ | EVar _

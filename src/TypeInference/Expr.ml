@@ -18,6 +18,18 @@ let tr_expr : type dir. tcfix:tcfix ->
   | Infer    -> infer_expr_type env e
   | Check tp -> check_expr_type env e tp
 
+
+(* let named_handler_parameters sch_env env make pars =  *)
+(*         List.map (fun (n, x, sch) ->  *)
+(*           let sch =  *)
+(*             match sch with  *)
+(*             | Some sch -> Type.tr_scheme sch_env sch  *)
+(*             | None -> let tp = make (T.TE_Type (Env.fresh_uvar env T.Kind.k_type)) in *)
+(*               T.SchemeExpr.of_type_expr tp *)
+(*           in  *)
+(*           (tr_name n, T.SchemeExpr.to_scheme sch) *)
+(*         ) pars *)
+
 (* ------------------------------------------------------------------------- *)
 let infer_expr_type ~tcfix ?app_type env (e : S.expr) =
   let open (val tcfix : TCFix) in
@@ -115,13 +127,29 @@ let infer_expr_type ~tcfix ?app_type env (e : S.expr) =
           tr_expr ~tcfix env e req
       }
 
-  | EHandler(cap, rcs, fcs) ->
+  | EHandler(cap, rcs, fcs, pars) ->
     let fin_tp = Env.fresh_uvar env T.Kind.k_type in
     (* TODO: effect and label could be named here *)
     let (env, _) = Env.enter_scope env in
     let (env, a) = Env.add_anon_tvar ~pos ~name:"E" env T.Kind.k_effect in
     let delim_tp = Env.fresh_uvar env T.Kind.k_type in
-    let (env, lx) = Env.add_the_label env (T.Type.t_label delim_tp) in
+    let named_pars = 
+        List.map (fun (n, x, init) -> 
+          let sch = 
+            let tp = make (T.TE_Type (Env.fresh_uvar env T.Kind.k_type)) in
+              T.SchemeExpr.of_type_expr tp
+          in 
+          let sch = T.SchemeExpr.to_scheme sch in
+          let er_init = 
+            begin match PolyExpr.check_def_scheme ~tcfix env init sch with
+            | Mono e -> e
+            | Poly(_,_) -> failwith "TODO: no idea what to do with polymorphic defs here"
+            end in
+          ((tr_name n, sch), er_init.er_expr)
+        ) pars
+    in
+    let lb_named = List.map fst named_pars in
+    let (env, lx) = Env.add_the_label env (T.Type.t_label delim_tp [] lb_named) in
     let er_cap = infer_expr_type env cap in
     begin match er_cap.er_effect with
     | Pure -> ()
@@ -136,16 +164,18 @@ let infer_expr_type ~tcfix ?app_type env (e : S.expr) =
       MatchClause.tr_finally_clauses ~tcfix ~pos env delim_tp fcs
         (Check fin_tp) in
     { er_expr   = make (T.EHandler {
-          label    = lx;
-          eff_var  = a;
-          delim_tp = delim_tp;
-          cap_type = cap_tp;
-          cap_body = er_cap.er_expr;
-          ret_var  = ret_x;
-          body_tp  = body_tp;
-          ret_body = er_ret.er_expr;
-          fin_var  = fin_x;
-          fin_body = er_fin.er_expr;
+          label     = lx;
+          eff_var   = a;
+          delim_tp  = delim_tp;
+          cap_type  = cap_tp;
+          cap_body  = er_cap.er_expr;
+          ret_var   = ret_x;
+          body_tp   = body_tp;
+          ret_body  = er_ret.er_expr;
+          fin_var   = fin_x;
+          fin_body  = er_fin.er_expr;
+          named_par = named_pars;
+          type_par  = [];
         });
       er_type   = Infered (T.Type.t_handler a cap_tp body_tp fin_tp);
       er_effect = Pure;
@@ -179,9 +209,9 @@ let check_label ~tcfix ~pos env lbl_opt =
         ParamResolve.instantiate ~pos env ParamResolve.no_reinst lbl sch
       end
   in
-  let delim_tp =
+  let lbl_data =
     match Unification.to_label env lbl_tp with
-    | L_Label delim_tp -> delim_tp
+    | L_Label lbl_data -> lbl_data
     | L_No ->
       let pp = Env.pp_tree env in
       begin match lbl_opt with
@@ -190,9 +220,9 @@ let check_label ~tcfix ~pos env lbl_opt =
       | None ->
         Error.report (Error.wrong_label_type ~pos ~pp lbl_tp)
       end;
-      Env.fresh_uvar env T.Kind.k_type
+      {lb_delim_tp = Env.fresh_uvar env T.Kind.k_type; lb_targs = []; lb_named = [] }
   in
-  (lbl, delim_tp, cs)
+  (lbl, lbl_data, cs)
 
 (* ------------------------------------------------------------------------- *)
 (** Check the sequence of REPL definitions, provided by a user. Always
@@ -326,7 +356,7 @@ let check_expr_type ~tcfix env (e : S.expr) tp =
       er_constr = er.er_constr @ cs
     }
 
-  | EHandler(cap, rcs, fcs) ->
+  | EHandler(cap, rcs, fcs, pars) ->
     begin match Unification.from_handler env tp with
     | H_Handler(b, cap_tp, tp_in, tp_out) ->
       (* TODO: effect and label could be named here *)
@@ -336,7 +366,24 @@ let check_expr_type ~tcfix env (e : S.expr) tp =
       let cap_tp = T.Type.subst sub cap_tp in
       let tp_in  = T.Type.subst sub tp_in in
       let delim_tp = Env.fresh_uvar env T.Kind.k_type in
-      let (env, lx) = Env.add_the_label env (T.Type.t_label delim_tp) in
+      (* let lb_named = named_handler_parameters sch_env env make pars in  *)
+      let named_pars = 
+          List.map (fun (n, x, init) -> 
+            let sch = 
+              let tp = make (T.TE_Type (Env.fresh_uvar env T.Kind.k_type)) in
+                T.SchemeExpr.of_type_expr tp
+            in 
+          let sch = T.SchemeExpr.to_scheme sch in
+          let er_init = 
+            begin match PolyExpr.check_def_scheme ~tcfix env init sch with
+            | Mono e -> e
+            | Poly(_,_) -> failwith "TODO: no idea what to do with polymorphic defs here"
+            end in
+          ((tr_name n, sch), er_init.er_expr)
+        ) pars
+      in
+      let lb_named = List.map fst named_pars in
+      let (env, lx) = Env.add_the_label env (T.Type.t_label delim_tp [] lb_named) in
       let er_cap = check_expr_type env cap cap_tp in
       begin match er_cap.er_effect with
       | Pure -> ()
@@ -349,16 +396,18 @@ let check_expr_type ~tcfix env (e : S.expr) tp =
         MatchClause.tr_finally_clauses ~tcfix ~pos env delim_tp fcs
           (Check tp_out) in
       { er_expr   = make (T.EHandler {
-            label    = lx;
-            eff_var  = a;
-            delim_tp = delim_tp;
-            cap_type = cap_tp;
-            cap_body = er_cap.er_expr;
-            ret_var  = ret_x;
-            body_tp  = tp_in;
-            ret_body = er_ret.er_expr;
-            fin_var  = fin_x;
-            fin_body = er_fin.er_expr;
+            label     = lx;
+            eff_var   = a;
+            delim_tp  = delim_tp;
+            cap_type  = cap_tp;
+            cap_body  = er_cap.er_expr;
+            ret_var   = ret_x;
+            body_tp   = tp_in;
+            ret_body  = er_ret.er_expr;
+            fin_var   = fin_x;
+            fin_body  = er_fin.er_expr;
+            named_par = named_pars;
+            type_par  = [];
           });
         er_type   = Checked;
         er_effect = Pure;
@@ -369,13 +418,31 @@ let check_expr_type ~tcfix env (e : S.expr) tp =
     end
 
   | EEffect(lbl_opt, cont_pat, body) ->
-    let (lbl, delim_tp, lbl_cs) = check_label ~tcfix ~pos env lbl_opt in
-    let cont_tp = T.Type.t_arrow (T.Scheme.of_type tp) delim_tp Impure in
-    let (env, cont_pat, _) = Pattern.check_type_ext env cont_pat cont_tp in
-    let er_body = check_expr_type env body delim_tp in
+    let (lbl, lbl_data, lbl_cs) = check_label ~tcfix ~pos env lbl_opt in
+    let cont_tp2 = T.Type.t_arrow (T.Scheme.of_type tp) lbl_data.lb_delim_tp Impure in
+    let cont_sch = { 
+      T.sch_targs = lbl_data.lb_targs; 
+      T.sch_named = lbl_data.lb_named; 
+      T.sch_body  = cont_tp2;
+    } in
+    let (env, cont_pat, _) = Pattern.check_scheme_ext env cont_pat cont_sch in
+    let (env, named) = List.fold_left_map (fun env (name, sch) -> 
+      let name' = NameUtils.tr_name ~pos ~pp name sch in 
+      let (env, var) = Env.add_val env name' sch in
+      (env, (name, var, sch))
+    ) env lbl_data.lb_named in
+    let er_body = check_expr_type env body lbl_data.lb_delim_tp in
     let (x, body) =
-      ExprUtils.match_var cont_pat er_body.er_expr delim_tp Impure in
-    { er_expr   = make (T.EEffect(lbl, x, body, tp));
+      ExprUtils.match_var cont_pat er_body.er_expr lbl_data.lb_delim_tp Impure in
+    let expr = T.EEffect {
+      dyn_label = lbl;
+      cnt_var = x;
+      targs = lbl_data.lb_targs;
+      body;
+      named;
+      res_tp = tp;
+    } in
+    { er_expr   = make expr;
       er_type   = Checked;
       er_effect = Impure;
       er_constr = lbl_cs @ er_body.er_constr

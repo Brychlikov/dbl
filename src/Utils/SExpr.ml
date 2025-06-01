@@ -9,8 +9,8 @@ type t =
   | Num  of int
   | List of t list
 
-let max_length = 80
-let max_indent = 40
+let max_length = 100
+let max_indent = 70
 
 let add_string buf str =
   Buffer.add_string buf str;

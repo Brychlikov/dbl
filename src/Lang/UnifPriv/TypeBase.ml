@@ -33,8 +33,15 @@ and type_view =
   | TVar     of tvar
   | TArrow   of scheme * typ * effct
   | THandler of tvar * typ * typ * typ
-  | TLabel   of typ
+  | TLabel   of label_data
   | TApp     of typ * typ
+
+
+and label_data = {
+  lb_delim_tp : typ;
+  lb_targs    : named_tvar list;
+  lb_named    : named_scheme list;
+}
 
 and scheme = {
   sch_targs : named_tvar list;
@@ -43,6 +50,7 @@ and scheme = {
 }
 
 and named_scheme = name * scheme
+
 
 type ctor_decl = {
   ctor_name        : string;
@@ -61,7 +69,7 @@ let t_arrow sch tp2 eff = TArrow(sch, tp2, eff)
 
 let t_handler a tp itp otp = THandler(a, tp, itp, otp)
 
-let t_label tp0 = TLabel tp0
+let t_label lb_delim_tp lb_targs lb_named = TLabel { lb_delim_tp; lb_targs; lb_named }
 
 let t_app tp1 tp2 = TApp(tp1, tp2)
 

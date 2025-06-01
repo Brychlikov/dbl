@@ -33,13 +33,19 @@ type type_view =
   | TVar     of tvar
   | TArrow   of scheme * typ * effct
   | THandler of tvar * typ * typ * typ
-  | TLabel   of typ
+  | TLabel   of label_data
   | TApp     of typ * typ
 
 and scheme = {
   sch_targs : named_tvar list;
   sch_named : named_scheme list;
   sch_body  : typ
+}
+
+and label_data = {
+  lb_delim_tp : typ;
+  lb_targs    : named_tvar list;
+  lb_named    : named_scheme list;
 }
 
 and named_scheme = name * scheme
@@ -67,7 +73,7 @@ val t_arrow : scheme -> typ -> effct -> typ
 val t_handler : tvar -> typ -> typ -> typ -> typ
 
 (** Type of first-class label *)
-val t_label : typ -> typ
+val t_label : typ -> named_tvar list -> named_scheme list -> typ
 
 (** Type application *)
 val t_app : typ -> typ -> typ

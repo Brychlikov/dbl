@@ -28,7 +28,8 @@ let rec tr_type tp =
         out_tp  = tr_type out_tp;
         out_eff = any_effect
       }
-  | TLabel delim_tp ->
+  (* TODO: pretty print the telescopes inside *)
+  | TLabel {lb_delim_tp = delim_tp; _} ->
     PP_TLabel(any_effect, tr_type delim_tp, any_effect)
   | TApp(tp1, tp2) -> PP_TApp(tr_type tp1, tr_type tp2)
 

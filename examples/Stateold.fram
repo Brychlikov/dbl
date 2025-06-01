@@ -1,0 +1,35 @@
+data State E X = 
+  { get : Unit ->[E] X 
+  , put : X ->[E] Unit
+  }
+
+let hState s =
+  handler
+    State
+      { get = effect () / r => fn s => r s s
+      , put = effect s / r  => fn _ => r () s
+      }
+  return  x => fn _ => x
+  finally f => f s
+  end
+
+let hStateNew s =
+  handler
+    State
+      { get = effect () / r => r {s=s} s
+      , put = effect s' / r => r {s=s'} ()
+      }
+  parameter s
+  end
+
+let hStateTr s = 
+    handler State 
+    { get = 
+    , put = 
+    }
+    end
+
+{#
+
+asoidfjaosidfj
+#}

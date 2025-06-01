@@ -31,7 +31,7 @@ type label =
   | L_No
     (** Type is not a label *)
 
-  | L_Label of T.typ
+  | L_Label of T.label_data
     (** Label type. It stores the type of the delimiter. *)
 
 (** Extra information that can be attached to error occurred during

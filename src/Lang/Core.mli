@@ -80,8 +80,14 @@ type _ typ =
       delim_tp  : ttype;
         (** Type of the delimiter *)
 
-      delim_eff : effct
+      delim_eff : effct;
         (** Effect of the delimiter *)
+
+      type_par  : TVar.ex list;
+        (** list of type parameters of continuation *)
+
+      val_par   : ttype list;
+        (** list of value parameters of continuation*)
     } -> ktype typ
 
   | TData    : ttype * effct * ctor_type list -> ktype typ
@@ -163,8 +169,11 @@ type data_def =
       delim_tp  : ttype;
         (** Type of the delimiter *)
 
-      delim_eff : effct
+      delim_eff : effct;
         (** Effect of the delimiter *)
+
+
+      named_par : ttype list;
     }
 
 (* ========================================================================= *)
@@ -259,14 +268,16 @@ type expr =
     (** Shallow pattern matching. The first parameter is the proof that the
       type of the matched value is an ADT *)
 
-  | EShift of value * TVar.ex list * var list * var * expr * ttype
+  | EShift of value * TVar.ex list * var list * var * expr * var list * ttype
     (** Shift-0 operator parametrized by runtime tag, binders of existential
       types and values stored at the delimiter, binder for continuation
-      variable, body, and the type of the whole expression. *)
+      variable, body, binders for named parameters, and the type of the whole
+      expression. *)
 
-  | EReset of value * Type.ex list * value list * expr * var * expr
+  | EReset of value * Type.ex list * value list * expr * value list * var * expr
     (** Reset-0 operator parametrized by runtime tag, list of types and values
-      stored at this delimiter, body, and the return clause *)
+      stored at this delimiter, body, initial named parameter values,
+      and the return clause *)
 
   | ERepl of (unit -> expr) * ttype * effct
     (** REPL. It is a function that prompts user for another input. It returns

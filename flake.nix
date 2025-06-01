@@ -22,6 +22,7 @@
         packages.default = self.legacyPackages.${system}.${package};
         devShells.default = with pkgs; pkgs.mkShell {
           buildInputs = [ 
+              rlwrap
               # cpspg.packages.${system}.default
               # Source file formatting
               nixpkgs-fmt

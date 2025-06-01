@@ -17,7 +17,7 @@ type handler =
 
 type label =
   | L_No
-  | L_Label of T.typ
+  | L_Label of T.label_data
 
 type error_info =
   | TVarEscapesScope of PPTree.t * T.tvar
@@ -130,8 +130,19 @@ and unify env tp1 tp2 =
     unify env (T.Type.subst sub1 tp_in1) (T.Type.subst sub2 tp_in2)
   | THandler _, _ -> raise Error
 
-  | TLabel delim_tp1, TLabel delim_tp2 ->
-    unify env delim_tp1 delim_tp2
+  | TLabel delim1, TLabel delim2 ->
+    unify env delim1.lb_delim_tp delim2.lb_delim_tp;
+    let (env, scope) = Env.enter_scope env in
+    let (env, sub1, sub2) = unify_named_type_args env (T.Subst.empty ~scope) (T.Subst.empty ~scope) delim1.lb_targs delim2.lb_targs
+    in 
+    (* TODO: DRY, copied from unify_scheme *)
+    List.iter2
+      (fun (name1, isch1) (name2, isch2) ->
+        if not (T.Name.equal name1 name2) then raise Error;
+        unify_scheme env
+          (T.Scheme.subst sub1 isch1) (T.Scheme.subst sub2 isch2))
+      delim1.lb_named delim2.lb_named
+
   | TLabel _, _ -> raise Error
 
   | TApp(ftp1, atp1), TApp(ftp2, atp2) ->
@@ -195,8 +206,22 @@ let rec check_subtype env tp1 tp2 =
     check_subtype env (T.Type.subst sub1 tp_in2) (T.Type.subst sub2 tp_in1)
   | THandler _, _ -> raise Error
 
-  | TLabel delim_tp1, TLabel delim_tp2 ->
-    unify env delim_tp1 delim_tp2
+  | TLabel lb1, TLabel lb2 ->
+    unify env lb1.lb_delim_tp lb2.lb_delim_tp;
+    let (env, x) = Env.add_anon_tvar env T.Kind.k_type in
+    let mock_sch1 = { 
+      T.sch_targs = lb1.lb_targs; 
+      T.sch_named = lb1.lb_named; 
+      T.sch_body = T.Type.t_var x
+    }
+    in
+    let mock_sch2 = { 
+      T.sch_targs = lb2.lb_targs; 
+      T.sch_named = lb2.lb_named; 
+      T.sch_body = T.Type.t_var x
+    }
+    in
+    check_subscheme env mock_sch1 mock_sch2
   | TLabel _, _ -> raise Error
 
   | TApp _, TApp _ -> unify env tp1 tp2
@@ -304,11 +329,12 @@ let from_handler env tp =
 let to_label env tp =
   match T.Type.view tp with
   | TUVar u ->
+    (* just like in to_arrow, make up delimiter type and leave parameters empty *)
     let tp0 = Env.fresh_uvar env T.Kind.k_type in
-    set_uvar env u (T.Type.t_label tp0);
-    L_Label tp0
+    set_uvar env u (T.Type.t_label tp0 [] []);
+    L_Label { T.lb_delim_tp = tp0; T.lb_named = []; T.lb_targs = [] }
 
-  | TLabel delim_tp -> L_Label delim_tp
+  | TLabel lbl -> L_Label lbl
 
   | TVar _ | TArrow _ | THandler _ | TApp _ -> L_No
 

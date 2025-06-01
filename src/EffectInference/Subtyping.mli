@@ -25,7 +25,7 @@ val type_shape : Env.t -> T.typ -> T.typ
 val as_arrow : T.typ -> T.scheme * T.typ * T.ceffect
 
 (** Decompose a type into components of a label type *)
-val as_label : T.typ -> T.effct * T.typ * T.effct
+val as_label : T.typ -> T.effct * T.typ * T.effct * T.named_tvar list * T.named_scheme list
 
 (** Decompose a type into components of a handler type *)
 val as_handler : T.typ -> T.tvar * T.typ * T.typ * T.effct * T.typ * T.effct

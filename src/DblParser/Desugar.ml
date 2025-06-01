@@ -99,8 +99,9 @@ let rec map_either ~warn f xs =
       (ys, z :: zs)
     end
 
-let map_h_clauses f xs =
+let map_h_clauses' f xs =
   map_either ~warn:Error.finally_before_return_clause f xs
+
 
 let ident_of_name (name : Raw.name) =
   match name with
@@ -547,8 +548,8 @@ and tr_expr (e : Raw.expr) =
   | EMatch(e, cls) -> make (EMatch(tr_expr e, List.map tr_match_clause cls))
   | EHandler(h, hcs) ->
     let e = tr_expr h in
-    let (rcs, fcs) = map_h_clauses tr_h_clause hcs in
-    make (EHandler(e, rcs, fcs))
+    let (rcs, fcs, pcs) = map_h_clauses hcs in
+    make (EHandler(e, rcs, fcs, pcs))
   | EEffect { label; args; resumption; body } ->
     let (pos, res) =
       match resumption with
@@ -718,8 +719,8 @@ and tr_def ?(public=false) (def : Raw.def) =
     let pat = tr_pattern ~public pat in
     let eff = tr_type_arg_opt def.pos eff_opt in
     let body = tr_expr body in
-    let (rcs, fcs) = map_h_clauses tr_h_clause hcs in
-    let body = { body with data = EHandler(body, rcs, fcs) } in
+    let (rcs, fcs, pcs) = map_h_clauses hcs in
+    let body = { body with data = EHandler(body, rcs, fcs, pcs) } in
     [ make (DHandlePat(pat, eff, body)) ]
   | DHandleWith(pub, pat, eff_opt, body) ->
     let public = public || pub in
@@ -760,13 +761,32 @@ and tr_pattern_with_fields ~public (pat : Raw.expr) =
   | _ ->
     (None, tr_pattern ~public pat)
 
-and tr_h_clause (hc : Raw.h_clause) =
-  let make data = { hc with data = data } in
-  match hc.data with
-  | HCReturn(pat, body) ->
-    Either.Left (make (Clause(tr_pattern ~public:false pat, tr_expr body)))
-  | HCFinally(pat, body) ->
-    Either.Right (make (Clause(tr_pattern ~public:false pat, tr_expr body)))
+
+and map_h_clauses (xs : Raw.h_clause list) = 
+  match xs with 
+  | [] -> ([], [], [])
+  | c :: cs -> 
+    let make data = { c with data = data } in
+    let (rcs, fcs, pcs) = map_h_clauses cs in
+    begin match c.data with 
+    | HCReturn(pat, body) -> 
+      let c = (make (Clause(tr_pattern ~public:false pat, tr_expr body))) in
+      (c :: rcs, fcs, pcs)
+    | HCFinally(pat, body) -> 
+      let c = (make (Clause(tr_pattern ~public:false pat, tr_expr body))) in
+      (c :: rcs, fcs, pcs)
+    | HCParameter(fd) -> 
+      begin match tr_handler_param_decl fd with 
+        | (x, y, init) -> (rcs, fcs, (x, y, init) :: pcs)
+      end
+    end
+
+and tr_handler_param_decl (fld: Raw.field) = 
+  let make data = { fld with data = data } in
+  match fld.data with 
+  | FldNameVal(n, init) -> (n, ident_of_name n, make (tr_poly_expr_def init).data)
+  | _ -> Error.fatal (Error.desugar_error fld.pos)
+
 
 (** Returns: list of explicit type annotations with fresh type variable names
     and a function that given a field name returns piece of code that

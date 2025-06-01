@@ -32,7 +32,7 @@ and named_scheme = name * scheme
 and type_view =
   | TVar     of tvar
   | TArrow   of scheme * typ * ceffect
-  | TLabel   of effct * typ * effct
+  | TLabel   of label_data
   | THandler of
     { tvar    : tvar;
       cap_tp  : typ;
@@ -43,6 +43,14 @@ and type_view =
     }
   | TEffect  of effct
   | TApp     of typ * typ
+
+and label_data = {
+  lb_eff       : effct;
+  lb_delim_tp  : typ;
+  lb_delim_eff : effct;
+  lb_targs     : named_tvar list;
+  lb_named     : named_scheme list;
+}
 
 type ctor_decl =
   { ctor_name        : string;
@@ -62,7 +70,8 @@ let t_pure_arrow sch tp = t_arrow sch tp Pure
 let t_pure_arrows schs tp =
   List.fold_right t_pure_arrow schs tp
 
-let t_label eff delim_tp delim_eff = TLabel(eff, delim_tp, delim_eff)
+let t_label lb_eff lb_delim_tp lb_delim_eff lb_targs lb_named = 
+  TLabel({lb_eff; lb_delim_tp; lb_delim_eff; lb_targs; lb_named })
 
 let t_handler tvar cap_tp in_tp in_eff out_tp out_eff =
   THandler { tvar; cap_tp; in_tp; in_eff; out_tp; out_eff }

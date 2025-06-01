@@ -51,11 +51,13 @@ let rec in_type_rec : type k. t -> k typ -> k typ =
   | TLabel lbl ->
     let effct = in_type_rec sub lbl.effct in
     let (sub, tvars) = add_tvars sub lbl.tvars in
+    let (sub, type_par) = add_tvars sub lbl.type_par in
     TLabel
-      { effct; tvars;
+      { effct; tvars; type_par;
         val_types = List.map (in_type_rec sub) lbl.val_types;
         delim_tp  = in_type_rec sub lbl.delim_tp;
-        delim_eff = in_type_rec sub lbl.delim_eff
+        delim_eff = in_type_rec sub lbl.delim_eff;
+        val_par = List.map (in_type_rec sub) lbl.val_par;
       }
   | TData(tp, eff, ctors) ->
     TData(in_type_rec sub tp, in_type_rec sub eff,

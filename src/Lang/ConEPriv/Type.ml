@@ -13,10 +13,11 @@ let rec collect_gvars ~scope tp gvs =
     collect_scheme_gvars ~scope sch gvs
     |> collect_gvars ~scope tp
     |> CEffect.collect_gvars ~scope eff
-  | TLabel(eff, delim_tp, delim_eff) ->
-    Effct.collect_gvars ~scope eff gvs
-    |> collect_gvars ~scope delim_tp
-    |> Effct.collect_gvars ~scope delim_eff
+  | TLabel({lb_eff; lb_delim_tp; lb_delim_eff; lb_named; lb_targs = _}) ->
+    Effct.collect_gvars ~scope lb_eff gvs
+    |> collect_gvars ~scope lb_delim_tp
+    |> Effct.collect_gvars ~scope lb_delim_eff
+    |> collect_named_scheme_gvars ~scope lb_named
   | THandler { tvar = _; cap_tp; in_tp; in_eff; out_tp; out_eff } ->
     collect_gvars ~scope cap_tp gvs
     |> collect_gvars ~scope in_tp
@@ -29,11 +30,14 @@ let rec collect_gvars ~scope tp gvs =
     collect_gvars ~scope tp1 gvs |> collect_gvars ~scope tp2
 
 and collect_scheme_gvars ~scope sch gvs =
+  collect_named_scheme_gvars ~scope sch.sch_named gvs
+  |> collect_gvars ~scope sch.sch_body
+
+and collect_named_scheme_gvars ~scope named_schs gvs = 
   List.fold_left
     (fun gvs (_, sch) -> collect_scheme_gvars ~scope sch gvs)
     gvs
-    sch.sch_named
-  |> collect_gvars ~scope sch.sch_body
+    named_schs
 
 (* ========================================================================= *)
 

@@ -100,7 +100,7 @@ let mk_handle eff_var cap_x cap_tp e1 e2 =
 
 let mk_handler
     ~eff_var ~lbl_var ~delim_tp ~delim_eff ~cap_tp ~in_tp ~in_eff 
-    ~cap_body ~ret_var ~ret_body ~fin_var ~fin_body () =
+    ~cap_body ~ret_var ~ret_body ~fin_var ~fin_body ~named_par () =
   let comp_var = Var.fresh ~name:"comp" () in
   let sch =
     { T.sch_targs = [(TNAnon, eff_var)];
@@ -113,7 +113,8 @@ let mk_handler
       { tvar      = eff_var;
         var       = lbl_var;
         delim_tp  = delim_tp;
-        delim_eff = delim_eff
+        delim_eff = delim_eff;
+        named_param = List.map fst named_par
       }
   in
   T.EFn(comp_var, sch,
@@ -121,7 +122,7 @@ let mk_handler
       T.ELet(fin_var,
         T.EReset(T.EVar lbl_var,
           T.EApp(T.ETApp(T.EVar comp_var, T.Type.t_var eff_var), cap_body),
-          ret_var, ret_body),
+          ret_var, ret_body, named_par),
         fin_body)))
 
 (* ========================================================================= *)
@@ -185,15 +186,17 @@ let rec update_rec_body ~rec_ctx (e : T.expr) : T.expr =
       List.map (update_clause_rec_body ~rec_ctx) cls,
       tp, eff)
 
-  | EShift(lbl, k, body, tp) ->
-    EShift(update_rec_body ~rec_ctx lbl, k, update_rec_body ~rec_ctx body, tp)
+  | EShift(lbl, k, body, npars, tp) ->
+    EShift(update_rec_body ~rec_ctx lbl, k, update_rec_body ~rec_ctx body, npars, tp)
 
-  | EReset(lbl, body, x, ret) ->
+  | EReset(lbl, body, x, ret, par_inits) ->
     EReset(
       update_rec_body ~rec_ctx lbl,
       update_rec_body ~rec_ctx body,
       x,
-      update_rec_body ~rec_ctx ret)
+      update_rec_body ~rec_ctx ret,
+      List.map (fun (sch, e) -> (sch, update_rec_body ~rec_ctx e)) par_inits
+    )
 
   | ERepl _ | EReplExpr _ ->
     assert false

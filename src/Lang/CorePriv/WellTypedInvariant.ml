@@ -156,7 +156,10 @@ end = struct
         "Internal error: non-productive recursive definition"
     | (_, tp) -> tp
     | exception Not_found ->
-      failwith "Internal error: unbound variable"
+      InterpLib.InternalError.report
+        ~reason:"unbound variable"
+        ~provided:(SExprPrinter.tr_var x)
+        ()
 
   let lookup_tvar env x =
     try TMap.find x env.tvar_map with
@@ -190,11 +193,13 @@ let rec tr_type : type k. Env.t -> k typ -> k typ =
   | TLabel lbl ->
     let effct = tr_type env lbl.effct in
     let (env, tvars) = Env.add_tvars env lbl.tvars in
+    let (env, type_par) = Env.add_tvars env lbl.type_par in
     TLabel
-      { effct; tvars;
+      { effct; tvars; type_par;
         val_types = List.map (tr_type env) lbl.val_types;
         delim_tp  = tr_type env lbl.delim_tp;
-        delim_eff = tr_type env lbl.delim_eff
+        delim_eff = tr_type env lbl.delim_eff;
+        val_par = List.map (tr_type env) lbl.val_par;
       }
   | TData(tp, eff, ctors) ->
     TData(tr_type env tp, tr_type env eff, List.map (tr_ctor_type env) ctors)
@@ -333,7 +338,8 @@ let finalize_data_def ~nonrec_scope (env, dd_eff) dd =
     let val_types = List.map (tr_type eff_env) lbl.val_types in
     let delim_tp  = tr_type eff_env lbl.delim_tp in
     let delim_eff = tr_type eff_env lbl.delim_eff in
-    let lbl_tp = TLabel { effct; tvars; val_types; delim_tp; delim_eff } in
+    let par_types = List.map (tr_type env) lbl.named_par in
+    let lbl_tp = TLabel { effct; tvars; val_types; delim_tp; delim_eff; type_par = []; val_par = par_types } in
     let env = Env.add_var env lbl.var lbl_tp in
     (* We add nterm effect, since generation of a fresh label is not pure *)
     (env, Effect.join Effect.nterm dd_eff)
@@ -433,7 +439,7 @@ let rec infer_type_eff env e =
       failwith "Internal type error"
     end
 
-  | EShift(v, tvs, xs, k, body, tp) ->
+  | EShift(v, tvs, xs, k, body, named_pars, tp) ->
     begin match infer_vtype env v with
     | TLabel lbl ->
       let tp = tr_type env tp in
@@ -441,9 +447,13 @@ let rec infer_type_eff env e =
       let tps  = List.map (Subst.in_type sub) lbl.val_types in
       let tp0  = Subst.in_type sub lbl.delim_tp in
       let eff0 = Subst.in_type sub lbl.delim_eff in
+      let par_tps = List.map (Subst.in_type sub) lbl.val_par in
       assert (List.length xs = List.length tps);
+      assert (List.length named_pars = List.length lbl.val_par);
       let env = List.fold_left2 Env.add_var env xs tps in
-      let env = Env.add_var env k (TArrow(tp, tp0, eff0)) in
+      let env = List.fold_left2 Env.add_var env named_pars par_tps in
+      let cont_type = List.fold_right (fun t res -> TArrow(t, res, TEffPure)) par_tps (TArrow(tp, tp0, eff0)) in
+      let env = Env.add_var env k  cont_type in
       check_type_eff env body tp0 eff0;
       (tp, lbl.effct)
 
@@ -451,7 +461,7 @@ let rec infer_type_eff env e =
       failwith "Internal type error"
     end
 
-  | EReset(v, tps, vs, body, x, ret) ->
+  | EReset(v, tps, vs, body, par_inits, x, ret ) ->
     begin match infer_vtype env v with
     | TLabel lbl ->
       let sub = tr_types_sub env Subst.empty lbl.tvars tps in

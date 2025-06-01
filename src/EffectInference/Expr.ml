@@ -455,10 +455,22 @@ and infer_type : type ed.
     let cap_tp    = Type.tr_type env h.cap_type in
     let in_tp     = Type.tr_type env h.body_tp in
     let out_eff   = T.Effct.join (Env.fresh_gvar env0) delim_eff in
+    (* Compute handler parameters *)
+    let type_par = (assert (List.is_empty h.type_par)); [] in
+    let named_par = List.map (fun (nsch, init) -> 
+      let (n, sch) = Type.tr_named_scheme env nsch in
+      let (init, Checked) = 
+        match T.Scheme.to_type sch with 
+        | Some tp -> check_type env init tp (Check Pure)
+        | None -> failwith "Shouldn't be polymorphic here"
+      in
+      ((n, sch), init)
+    ) h.named_par in
+    let named_par_schemes = List.map fst named_par in
     (* Add label *)
     let h_eff = T.Effct.var eff_var in
     let env = Env.add_mono_var env h.label
-      (T.Type.t_label h_eff delim_tp delim_eff) in
+      (T.Type.t_label h_eff delim_tp delim_eff type_par named_par_schemes) in
     (* Translate the capability *)
     let (cap_body, Checked) = check_type env h.cap_body cap_tp (Check Pure) in
     (* Translate the return clause *)
@@ -486,21 +498,42 @@ and infer_type : type ed.
         ~eff_var ~lbl_var:h.label
         ~delim_tp ~delim_eff ~cap_tp ~in_tp ~in_eff 
         ~cap_body ~ret_var:h.ret_var ~ret_body ~fin_var:h.fin_var ~fin_body
+        ~named_par
         () in
     (res, tp, return_pure eff_req)
 
-  | EEffect(lbl, x, body, res_tp) ->
+  | EEffect {
+      dyn_label = lbl;
+      cnt_var = x;
+      targs;
+      named;
+      body;
+      res_tp;
+    } -> 
     let (lbl, lbl_tp, eff_resp1) = infer_type env lbl eff_req in
-    let (eff, delim_tp, delim_eff) = Subtyping.as_label lbl_tp in
+    let (eff, delim_tp, delim_eff, targs, named') = Subtyping.as_label lbl_tp in
     let res_tp = Type.tr_type env res_tp in
-    let cont_tp =
-      T.Type.t_arrow (T.Scheme.of_type res_tp) delim_tp (Impure delim_eff) in
-    let env = Env.add_mono_var env x cont_tp in
+    let cont_tp2 = T.Type.t_arrow (T.Scheme.of_type res_tp) delim_tp (Impure delim_eff) in
+    let cont_sch = {
+      T.sch_targs = targs;
+      T.sch_named = named';
+      T.sch_body = cont_tp2;
+    }
+    in
+    let env = Env.add_poly_var env x cont_sch in
+    let (env, named) = List.fold_left 
+      (fun (env, named) (n, x, sch) -> 
+        let sch = (Type.tr_scheme env sch) in
+        (Env.add_poly_var env x sch),
+        (n, x, sch)::named)
+      (env, [])
+      named
+    in
     let (body, Checked) =
       check_type env body delim_tp (Check (Impure delim_eff)) in
     let eff_resp2 = return_effect env ~node:e eff_req (Impure eff) in
     let eff_resp = eff_resp_join eff_resp1 [ eff_resp2 ] in
-    let res = T.EShift(lbl, x, body, res_tp) in
+    let res = T.EShift(lbl, x, body, named, res_tp) in
     (res, res_tp, eff_resp)
 
   | EExtern(name, tp) ->

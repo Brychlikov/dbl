@@ -62,11 +62,14 @@ let rec in_type_rec sub tp =
       (in_type_rec sub tp)
       (in_ceffect_rec sub eff)
 
-  | TLabel(eff, delim_tp, delim_eff) ->
+  | TLabel({lb_eff; lb_delim_tp; lb_delim_eff; lb_named; lb_targs}) ->
+    let (sub, targs) = open_named_tvars sub lb_targs in
     t_label
-      (in_effect_rec sub eff)
-      (in_type_rec   sub delim_tp)
-      (in_effect_rec sub delim_eff)
+      (in_effect_rec sub lb_eff)
+      (in_type_rec   sub lb_delim_tp)
+      (in_effect_rec sub lb_delim_eff)
+      targs
+      (List.map (in_named_scheme_rec sub) lb_named)
 
   | THandler { tvar; cap_tp; in_tp; in_eff; out_tp; out_eff } ->
     let (sub_in, tvar) = open_tvar sub tvar in

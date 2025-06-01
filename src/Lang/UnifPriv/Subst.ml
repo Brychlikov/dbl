@@ -65,8 +65,9 @@ let rec in_type_rec sub tp =
     let otp = in_type_rec sub otp in
     let (sub, a) = add_tvar (enter_scope sub) a in
     t_handler a (in_type_rec sub tp) (in_type_rec sub itp) otp
-  | TLabel tp0 ->
-    t_label (in_type_rec sub tp0)
+  | TLabel { lb_delim_tp; lb_targs; lb_named } ->
+    (* TODO: DANGER, unsubstituted targs *)
+    t_label (in_type_rec sub lb_delim_tp) lb_targs (List.map (in_named_scheme_rec sub) lb_named)
   | TApp(tp1, tp2) ->
     t_app (in_type_rec sub tp1) (in_type_rec sub tp2)
 

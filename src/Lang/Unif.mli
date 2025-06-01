@@ -88,6 +88,13 @@ type ctor_decl = {
     (** Type schemes of the regular parameters *)
 }
 
+(** contents of first class label *)
+type label_data = {
+      lb_delim_tp : typ;
+      lb_targs    : named_tvar list;
+      lb_named    : named_scheme list;
+}
+
 (** Type substitution *)
 type subst
 
@@ -159,8 +166,12 @@ and type_expr_data =
       delim_tp  : type_expr;
         (** Type of the delimiter *)
 
-      delim_eff : type_expr
+      delim_eff : type_expr;
         (** Effect of the delimiter *)
+      targs     : named_tvar list;
+        (** Type parameters of continuations *)
+      named     : named_scheme_expr list;
+        (** Named parameters of continuations*)
     }
 
   | TE_App of type_expr * type_expr
@@ -244,6 +255,8 @@ type data_def =
 
       annot     : type_expr;
         (** Annotation of the label *)
+
+      named_params : named_scheme list;
     }
 
 (* ========================================================================= *)
@@ -424,12 +437,26 @@ and expr_data =
 
       fin_body  : expr;
       (** Body of the finally clause *)
+
+      named_par : (named_scheme * expr)list;
+      (** list of named parameters of the handler *)
+
+      type_par  : named_tvar list;
+      (** list of type parameters of the handler *)
     }
 
-  | EEffect of expr * var * expr * typ
+  (* | EEffect of expr * var * named_tvar list * (name *var * scheme_expr) list * expr * typ *)
     (** Capability of effectful functional operation. It stores dynamic label,
       continuation variable binder, body, and the type of the whole
       expression. *)
+  | EEffect of {
+    dyn_label : expr;
+    cnt_var   : var;
+    targs     : named_tvar list;
+    named     : (name * var * scheme) list;
+    body      : expr;
+    res_tp    : typ;
+  }
 
   | EExtern of string * typ
     (** Externally defined value *)
@@ -631,6 +658,7 @@ end
 (* ========================================================================= *)
 (** Operations on types *)
 module Type : sig
+
   (** View of a type *)
   type type_view =
     | TEffect
@@ -652,11 +680,13 @@ module Type : sig
         - [itp] is a typ of handled expression.
         - [otp] s a type of the whole handler. *)
   
-    | TLabel of typ
+    | TLabel of label_data
       (** Type of a first-class label. It stores the type of the delimiter. *)
 
     | TApp of typ * typ
       (** Type application *)
+
+
 
   (** Head of a neutral type *)
   type neutral_head =
@@ -680,7 +710,7 @@ module Type : sig
     | Whnf_Handler   of tvar * typ * typ * typ
       (** Handler type *)
 
-    | Whnf_Label of typ
+    | Whnf_Label of label_data
       (** Label type *)
 
   (** Effect *)
@@ -711,7 +741,7 @@ module Type : sig
   val t_handler : tvar -> typ -> typ -> typ -> typ
 
   (** Type of first-class label *)
-  val t_label : typ -> typ
+  val t_label : typ -> named_tvar list -> named_scheme list -> typ
 
   (** Type application *)
   val t_app : typ -> typ -> typ

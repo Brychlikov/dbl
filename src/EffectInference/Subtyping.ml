@@ -65,10 +65,14 @@ let rec type_equiv ~origin env tp1 tp2 =
   | TArrow _, _ ->
     failwith "Internal type error"
 
-  | TLabel(eff1, delim_tp1, delim_eff1), TLabel(eff2, delim_tp2, delim_eff2) ->
-    effect_equiv' ~origin env eff1       eff2;
-    type_equiv    ~origin env delim_tp1  delim_tp2;
-    effect_equiv' ~origin env delim_eff1 delim_eff2
+  | TLabel(lb1), TLabel(lb2) ->
+    effect_equiv' ~origin env lb1.lb_eff       lb2.lb_eff;
+    type_equiv    ~origin env lb1.lb_delim_tp  lb2.lb_delim_tp;
+    effect_equiv' ~origin env lb1.lb_delim_eff lb2.lb_delim_eff;
+    assert (List.is_empty lb1.lb_targs);
+    assert (List.is_empty lb2.lb_targs);
+    assert (List.length lb1.lb_named = List.length lb2.lb_named);
+    List.iter2 (named_scheme_equiv ~origin env) lb1.lb_named lb2.lb_named
   | TLabel _, _ ->
     failwith "Internal type error"
 
@@ -235,11 +239,16 @@ let rec type_shape env tp =
       (type_shape    env tp)
       (ceffect_shape env eff)
 
-  | TLabel(_, delim_tp, _) ->
+  | TLabel { lb_eff = _; lb_delim_tp; lb_delim_eff = _; lb_targs = []; lb_named} ->
     T.Type.t_label
       (Env.fresh_gvar env)
-      (type_shape env delim_tp)
+      (type_shape env lb_delim_tp)
       (Env.fresh_gvar env)
+      []
+      (List.map (named_scheme_shape env) lb_named)
+
+  | TLabel _ -> failwith "TODO: handler type params"
+
 
   | THandler h ->
     let out_tp  = type_shape env h.out_tp in
@@ -302,7 +311,8 @@ let as_arrow tp =
 
 let as_label tp =
   match T.Type.view tp with
-  | TLabel(eff, delim_tp, delim_eff) -> (eff, delim_tp, delim_eff)
+  | TLabel{lb_eff; lb_delim_tp; lb_delim_eff; lb_targs; lb_named} -> 
+    (lb_eff, lb_delim_tp, lb_delim_eff, lb_targs, lb_named)
   | _ -> failwith "Internal type error"
 
 let as_handler tp =

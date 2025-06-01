@@ -30,7 +30,9 @@ and type_expr_data =
   | TE_Label of
     { eff       : type_expr;
       delim_tp  : type_expr;
-      delim_eff : type_expr
+      delim_eff : type_expr;
+      targs     : named_tvar list;
+      named     : named_scheme_expr list;
     }
   | TE_App    of type_expr * type_expr
   | TE_Option of type_expr
@@ -68,6 +70,7 @@ type data_def =
       var       : var;
       delim_tp  : typ;
       annot     : type_expr;
+      named_params : named_scheme list;
     }
 
 type proof_expr =
@@ -130,8 +133,17 @@ and expr_data =
       ret_body  : expr;
       fin_var   : var;
       fin_body  : expr;
+      named_par : (named_scheme * expr) list;
+      type_par    : named_tvar list;
     }
-  | EEffect     of expr * var * expr * typ
+  | EEffect of {
+    dyn_label : expr;
+    cnt_var   : var;
+    targs     : named_tvar list;
+    named     : (name * var * scheme) list;
+    body      : expr;
+    res_tp    : typ;
+  }
   | EExtern     of string * typ
   | EAnnot      of expr * type_expr
   | ERepl       of (unit -> expr) * typ

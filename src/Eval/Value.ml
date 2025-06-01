@@ -35,6 +35,7 @@ and 'v comp = ('v -> ans) -> ans
 and frame =
   { f_label : UID.t
   ; f_vals  : value list
+  ; f_pars  : value list
   ; f_ret   : (value -> value comp)
   ; f_cont  : (value -> ans)
   }

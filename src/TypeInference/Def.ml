@@ -91,7 +91,8 @@ let check_def : type st dir. tcfix:tcfix ->
     let (env, _) = Env.enter_scope env in
     let (env, name, x) = Type.check_type_arg env eff T.Kind.k_effect in
     let (env, pat, pat_eff) =
-      Pattern.check_type_ext env pat (T.Type.t_label delim_tp) in
+      (* TODO: what parameters? *)
+      Pattern.check_type_ext env pat (T.Type.t_label delim_tp [] []) in
     let rest = cont.run env (Check tp) in
     let rest_eff = T.Effect.join pat_eff rest.er_effect in
     let lx = Var.fresh ~name:"lbl" () in
@@ -99,7 +100,8 @@ let check_def : type st dir. tcfix:tcfix ->
       { tvar     = x;
         var      = lx;
         delim_tp = delim_tp;
-        annot    = make_local (T.TE_Type delim_tp)
+        annot    = make_local (T.TE_Type delim_tp);
+        named_params = [];
       } in
     let expr =
       make rest (T.EData([dd],

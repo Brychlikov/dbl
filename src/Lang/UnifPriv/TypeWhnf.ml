@@ -16,7 +16,7 @@ type whnf =
       (* Arguments are in reversed order! *)
   | Whnf_Arrow of scheme * typ * effct
   | Whnf_Handler   of tvar * typ * typ * typ
-  | Whnf_Label of typ
+  | Whnf_Label of label_data
 
 let rec whnf tp =
   match view tp with
