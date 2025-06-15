@@ -1,0 +1,28 @@
+
+data ST X E =
+  { get : Unit ->[E] X
+  , put : X ->[E] Unit
+  }
+
+data Pair X Y = Pair of X , Y
+
+
+let hPairOfStates stA0 stB0 =
+  handler
+    let hA = ST
+      { get = effect () => resume ~stA
+      , put = effect st => resume {~stA=st} ()
+      }
+    let hB = ST
+      { get = effect () => resume ~stB
+      , put = effect st => resume {~stB=st} ()
+      }
+    in Pair hA hB
+  parameter ~stA = stA0
+  parameter ~stB = stB0
+  end
+
+let printIntLn (x : Int) = printStrLn x.toString
+
+let _ = handle Pair stA stB with hPairOfStates 1 5 in
+  printIntLn (stA.get ())

@@ -774,7 +774,7 @@ and map_h_clauses (xs : Raw.h_clause list) =
       (c :: rcs, fcs, pcs)
     | HCFinally(pat, body) -> 
       let c = (make (Clause(tr_pattern ~public:false pat, tr_expr body))) in
-      (c :: rcs, fcs, pcs)
+      (rcs, c :: fcs, pcs)
     | HCParameter(fd) -> 
       begin match tr_handler_param_decl fd with 
         | (x, y, init) -> (rcs, fcs, (x, y, init) :: pcs)

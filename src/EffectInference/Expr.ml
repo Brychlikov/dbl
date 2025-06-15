@@ -521,13 +521,13 @@ and infer_type : type ed.
     }
     in
     let env = Env.add_poly_var env x cont_sch in
-    let (env, named) = List.fold_left 
-      (fun (env, named) (n, x, sch) -> 
+    let (env, named) = List.fold_right 
+      (fun (n, x, sch) (env, named) -> 
         let sch = (Type.tr_scheme env sch) in
         (Env.add_poly_var env x sch),
         (n, x, sch)::named)
-      (env, [])
       named
+      (env, [])
     in
     let (body, Checked) =
       check_type env body delim_tp (Check (Impure delim_eff)) in

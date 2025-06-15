@@ -41,6 +41,7 @@ let tr_opt_clauses (type dir) ~tcfix ~pos env tp_in cls
   let x_expr = make (T.EInst(make (T.EVar x), [], [])) in
   match cls, rtp_req with
   | [], Infer ->
+    (* print_endline "quick exit in infer"; *)
     let er =
       { er_expr   = x_expr;
         er_type   = Infered tp_in;
@@ -50,6 +51,7 @@ let tr_opt_clauses (type dir) ~tcfix ~pos env tp_in cls
     in (x, er)
 
   | [], Check tp_out ->
+    (* print_endline "quick exit on check"; *)
     Error.check_unify_result ~pos (Unification.subtype env tp_in tp_out)
       ~on_error:(on_error tp_in tp_out);
     let er =
@@ -62,6 +64,9 @@ let tr_opt_clauses (type dir) ~tcfix ~pos env tp_in cls
 
   | _ :: _, _ ->
     let (tp, tp_resp) = guess_type env rtp_req in
+    (* let pretty = T.Pretty.pp_type (T.Pretty.empty_context ()) (Env.pp_tree env) in *)
+    (* Printf.printf "checking clause body with var %s has type %s\n" *)
+    (*   (pretty tp_in) (pretty tp); *)
     let (cls, eff, cs) = check_match_clauses ~tcfix env tp_in cls tp in
     let er =
       { er_expr   = make (T.EMatch(x_expr, cls, tp, eff));
@@ -72,11 +77,13 @@ let tr_opt_clauses (type dir) ~tcfix ~pos env tp_in cls
     in (x, er)
 
 let tr_return_clauses ~tcfix ~pos env tp_in cls rtp_req =
+  (* print_endline "Chegking return clause"; *)
   let pp = Env.pp_tree env in
   tr_opt_clauses ~tcfix ~pos env tp_in cls rtp_req
     ~on_error:(Error.return_type_mismatch ~pp)
 
 let tr_finally_clauses ~tcfix ~pos env tp_in cls rtp_req =
+  (* print_endline "Chegking finally clause"; *)
   let pp = Env.pp_tree env in
   tr_opt_clauses ~tcfix ~pos env tp_in cls rtp_req
     ~on_error:(Error.finally_type_mismatch ~pp)

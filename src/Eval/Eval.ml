@@ -29,12 +29,22 @@ let rec grab l comp cont gstack stack =
   match stack with
   | [] -> failwith "Unhandled effect"
   | f :: stack ->
-    let gstack = { f with f_cont = cont } :: gstack in
-    let cont = f.f_cont in
+    let gstack' = { f with f_cont = cont } :: gstack in
+    let cont' = f.f_cont in
     if f.f_label = l then
-      comp f.f_vals f.f_pars (VFn(reify_cont gstack)) cont stack
+      begin match f.f_pars with
+      | [] -> comp f.f_vals f.f_pars (VFn(reify_cont gstack')) cont' stack
+      | [_] -> 
+        let cnt_v : value -> value comp = fun p cont' stack -> 
+            let gstack'' = { f with f_pars = [p]; f_cont = cont } :: gstack in
+            cont' (VFn(reify_cont gstack'')) stack
+        in 
+        comp f.f_vals f.f_pars (VFn cnt_v) cont' stack
+
+      | _ -> failwith "Skill issue"
+      end
     else
-      grab l comp cont gstack stack
+      grab l comp cont' gstack stack
 
 (** Shift0 operator *)
 let shift0 l comp cont stack =

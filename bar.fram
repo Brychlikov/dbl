@@ -1,8 +1,16 @@
-parameter ~x : Int
 
-let foo () = ~x + 3
-let ~x = "sike!"
+data State E = 
+  { get    : Unit ->[E] Int
+  }
 
-let bar () = ~x + "3"
+let hState s =
+  handler
+    let get () = effect / r => fn s => r s s
+    in
+    State { get }
+    return x => fn _ => x
+    finally f => f s
+  end
 
-let _ = printStrLn (bar ())
+#let _ = handle st with hState 5 in st.get ()
+

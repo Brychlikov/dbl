@@ -133,14 +133,14 @@ let infer_expr_type ~tcfix ?app_type env (e : S.expr) =
     let (env, _) = Env.enter_scope env in
     let (env, a) = Env.add_anon_tvar ~pos ~name:"E" env T.Kind.k_effect in
     let delim_tp = Env.fresh_uvar env T.Kind.k_type in
-    let named_pars = 
-        List.map (fun (n, x, init) -> 
-          let sch = 
+    let named_pars =
+        List.map (fun (n, x, init) ->
+          let sch =
             let tp = make (T.TE_Type (Env.fresh_uvar env T.Kind.k_type)) in
               T.SchemeExpr.of_type_expr tp
-          in 
+          in
           let sch = T.SchemeExpr.to_scheme sch in
-          let er_init = 
+          let er_init =
             begin match PolyExpr.check_def_scheme ~tcfix env init sch with
             | Mono e -> e
             | Poly(_,_) -> failwith "TODO: no idea what to do with polymorphic defs here"
@@ -367,14 +367,14 @@ let check_expr_type ~tcfix env (e : S.expr) tp =
       let tp_in  = T.Type.subst sub tp_in in
       let delim_tp = Env.fresh_uvar env T.Kind.k_type in
       (* let lb_named = named_handler_parameters sch_env env make pars in  *)
-      let named_pars = 
-          List.map (fun (n, x, init) -> 
-            let sch = 
+      let named_pars =
+          List.map (fun (n, x, init) ->
+            let sch =
               let tp = make (T.TE_Type (Env.fresh_uvar env T.Kind.k_type)) in
                 T.SchemeExpr.of_type_expr tp
-            in 
+            in
           let sch = T.SchemeExpr.to_scheme sch in
-          let er_init = 
+          let er_init =
             begin match PolyExpr.check_def_scheme ~tcfix env init sch with
             | Mono e -> e
             | Poly(_,_) -> failwith "TODO: no idea what to do with polymorphic defs here"
@@ -389,12 +389,23 @@ let check_expr_type ~tcfix env (e : S.expr) tp =
       | Pure -> ()
       | Impure -> Error.report (Error.impure_handler ~pos)
       end;
+      (* Printf.printf "Expected handler type: %s\n" (T.Pretty.pp_type (T.Pretty.empty_context ()) pp tp); *)
+      (* Printf.printf "In type: %s\n" (T.Pretty.pp_type (T.Pretty.empty_context ()) pp tp_in); *)
+      (* Printf.printf "Finaly type: %s\n" (T.Pretty.pp_type (T.Pretty.empty_context ()) pp tp_out); *)
+      (* Printf.printf "Delim type: %s\n" (T.Pretty.pp_type (T.Pretty.empty_context ()) pp delim_tp); *)
       let (ret_x, er_ret) =
         MatchClause.tr_return_clauses ~tcfix ~pos env tp_in rcs
           (Check delim_tp) in
       let (fin_x, er_fin) =
         MatchClause.tr_finally_clauses ~tcfix ~pos env delim_tp fcs
           (Check tp_out) in
+      (* let (infered_fin_x, infered_er_fin) = *)
+      (*   MatchClause.tr_finally_clauses ~tcfix ~pos env delim_tp fcs *)
+      (*     Infer in *)
+      (* let actual_tp_out = expr_result_type infered_er_fin in *)
+      (* Printf.printf "Infered fin type: %s\n" (T.Pretty.pp_type (T.Pretty.empty_context ()) pp actual_tp_out); *)
+
+
       { er_expr   = make (T.EHandler {
             label     = lx;
             eff_var   = a;
@@ -420,14 +431,14 @@ let check_expr_type ~tcfix env (e : S.expr) tp =
   | EEffect(lbl_opt, cont_pat, body) ->
     let (lbl, lbl_data, lbl_cs) = check_label ~tcfix ~pos env lbl_opt in
     let cont_tp2 = T.Type.t_arrow (T.Scheme.of_type tp) lbl_data.lb_delim_tp Impure in
-    let cont_sch = { 
-      T.sch_targs = lbl_data.lb_targs; 
-      T.sch_named = lbl_data.lb_named; 
+    let cont_sch = {
+      T.sch_targs = lbl_data.lb_targs;
+      T.sch_named = lbl_data.lb_named;
       T.sch_body  = cont_tp2;
     } in
     let (env, cont_pat, _) = Pattern.check_scheme_ext env cont_pat cont_sch in
-    let (env, named) = List.fold_left_map (fun env (name, sch) -> 
-      let name' = NameUtils.tr_name ~pos ~pp name sch in 
+    let (env, named) = List.fold_left_map (fun env (name, sch) ->
+      let name' = NameUtils.tr_name ~pos ~pp name sch in
       let (env, var) = Env.add_val env name' sch in
       (env, (name, var, sch))
     ) env lbl_data.lb_named in

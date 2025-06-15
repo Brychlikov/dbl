@@ -4,15 +4,41 @@ data Eff E =
   , put : Int  ->[E] Unit
   }
 
+data BT E = 
+  { flip : Unit ->[E] Bool
+  , fail : {type X} -> Unit ->[E] X
+  }
+
+let hBTFirst = 
+  handler BT 
+    { flip = effect () =>
+      match resume True with
+        | Some x => Some x
+        | None   => resume False
+      end
+    , fail = effect () => None
+    }
+    return x => Some x
+    end
+    
+
 let hEff (st0 : Int)=
   handler
     Eff
-      { get = effect ()      => resume {st} st
-      , put = effect new_st  => resume {st=new_st} ()
+      { get = effect ()      => fn st => resume st st
+      , put = effect new_st  => fn _  => resume () new_st
       }
     return x => x
-    parameter st = st0
+    finally f => f st0
   end
 
-let _ = handle st with hEff 1 in 
-    st.put 2; printStr (st.get ()).toString
+# let _ = handle st with hEff 1 in 
+#     st.put 2; printStrLn (st.get ()).toString
+
+let _ =  handle st with hEff 1 in handle bt with hBTFirst in
+    ((if not (bt.flip ()) then
+        (printStrLn "got true";
+        st.put 2)
+    else (printStrLn "got false"; bt.fail ()));
+    printStrLn (st.get ()).toString)
+
