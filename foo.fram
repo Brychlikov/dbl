@@ -25,20 +25,19 @@ let hBTFirst =
 let hEff (st0 : Int)=
   handler
     Eff
-      { get = effect ()      => fn st => resume st st
-      , put = effect new_st  => fn _  => resume () new_st
+      { get = effect ()      => resume ~st
+      , put = effect new_st  => resume {~st=new_st} ()
       }
+    parameter ~st = st0
     return x => x
-    finally f => f st0
   end
 
 # let _ = handle st with hEff 1 in 
 #     st.put 2; printStrLn (st.get ()).toString
 
-let _ =  handle st with hEff 1 in handle bt with hBTFirst in
-    ((if not (bt.flip ()) then
-        (printStrLn "got true";
-        st.put 2)
-    else (printStrLn "got false"; bt.fail ()));
-    printStrLn (st.get ()).toString)
+let _ =  
+         handle bt with hBTFirst in
+         handle st with hEff 1 in 
+          (if bt.flip () then st.put 5 else ());
+          printStrLn (st.get()).toString
 

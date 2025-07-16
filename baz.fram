@@ -25,4 +25,4 @@ let hPairOfStates stA0 stB0 =
 let printIntLn (x : Int) = printStrLn x.toString
 
 let _ = handle Pair stA stB with hPairOfStates 1 5 in
-  printIntLn (stA.get ())
+  stA.put 10; printIntLn (stA.get () + stB.get())

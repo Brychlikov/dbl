@@ -29,20 +29,19 @@ let rec grab l comp cont gstack stack =
   match stack with
   | [] -> failwith "Unhandled effect"
   | f :: stack ->
-    let gstack' = { f with f_cont = cont } :: gstack in
     let cont' = f.f_cont in
     if f.f_label = l then
-      begin match f.f_pars with
-      | [] -> comp f.f_vals f.f_pars (VFn(reify_cont gstack')) cont' stack
-      | [_] -> 
-        let cnt_v : value -> value comp = fun p cont' stack -> 
-            let gstack'' = { f with f_pars = [p]; f_cont = cont } :: gstack in
-            cont' (VFn(reify_cont gstack'')) stack
-        in 
-        comp f.f_vals f.f_pars (VFn cnt_v) cont' stack
-
-      | _ -> failwith "Skill issue"
-      end
+      let rec build_cont_fn collected_pars remaining_pars =
+        match remaining_pars with
+        | [] -> 
+          let gstack' = { f with f_pars = List.rev collected_pars; f_cont = cont } :: gstack in
+          VFn(reify_cont gstack')
+        | _ :: rest ->
+          VFn(fun p cont' stack ->
+            let new_collected = p :: collected_pars in
+            cont' (build_cont_fn new_collected rest) stack)
+      in
+      comp f.f_vals f.f_pars (build_cont_fn [] f.f_pars) cont' stack
     else
       grab l comp cont' gstack stack
 
